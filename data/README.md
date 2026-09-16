@@ -1,3 +1,6 @@
+# Marta Rosas nª 20260651
+
+
 # Dataset -- COMPAS Recidivism (ProPublica)
 
 ## The problem
@@ -52,3 +55,9 @@ error.
 | `two_year_recid` | binary | **target** -- was this person rearrested within two years? | `0` = no, `1` = yes |
 
 Source: derived from [propublica/compas-analysis](https://github.com/propublica/compas-analysis) (the data behind the "Machine Bias" investigation). Personally-identifying columns (name, date of birth, case numbers, charge descriptions) were removed.
+
+# progresso semana1
+Alterei o código de modo a comparar os modelos Logistic Regression e Decision Tree.
+O Logistic Regression obteve uma accuracy de 0.679 no treino e 0.678 no teste, apresentando uma diferença muito reduzida entre ambos (0.001). Já a Decision Tree obteve 0.829 no treino, mas apenas 0.629 no teste, com um gap de 0.200.
+Assim, com base nos resultados obtidos, o Logistic Regression apresenta, até ao agora, melhor capacidade de generalização, apesar de ter uma accuracy inferior no conjunto de treino.
+

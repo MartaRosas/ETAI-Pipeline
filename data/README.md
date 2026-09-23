@@ -56,8 +56,24 @@ error.
 
 Source: derived from [propublica/compas-analysis](https://github.com/propublica/compas-analysis) (the data behind the "Machine Bias" investigation). Personally-identifying columns (name, date of birth, case numbers, charge descriptions) were removed.
 
-# progresso semana1
+
+
+
+# progresso semana1 
 Alterei o código de modo a comparar os modelos Logistic Regression e Decision Tree.
 O Logistic Regression obteve uma accuracy de 0.679 no treino e 0.678 no teste, apresentando uma diferença muito reduzida entre ambos (0.001). Já a Decision Tree obteve 0.829 no treino, mas apenas 0.629 no teste, com um gap de 0.200.
 Assim, com base nos resultados obtidos, o Logistic Regression apresenta, até ao agora, melhor capacidade de generalização, apesar de ter uma accuracy inferior no conjunto de treino.
 
+# progresso semana 2
+Esta semana, criei o ficheiro data_diagnostics.py, onde implementei três funções principais. A test_missingness_mechanism que usa o Chi-squared test e do carmers v. A flag_invalid_values e a find_duplicates (que permite identificar linhas duplicadas e, quando aplicável, IDs repetidos). Este ficheiro inclui também a função _cramers_v, usada dentro da função test_missingness_mechanism, para calcular a associação entre variáveis categóricas. Criei tambem pequenas explicaçoes sobre cada função ao pé do codigo para nao me ir perdendo.
+
+No preprocessing.py, adicionei a função clean_dataset, esta utiliza a função _canonicalize_categories para uniformizar categorias que apareciam representadas de diferentes formas. Por exemplo, african-american, African American e AFRICAN-AMERICAN passam a ser representados de forma consistente como African-American (= ao ex da aula). Esta função usa tambem a flag_invalid_values que está no data_diagnostics.py e ptt importei para o preprocessing.py.
+
+Adicionei ao config.yaml as regras de diagnóstico e limpeza dos dados, defini também regras para uniformizar categorias e indiquei as variáveis redundantes a remover, identificadas anteriormente através da análise de correlação e VIF. Adicionei também ao config.yaml a configuração do preprocessing.
+
+No main.py, importei a função clean_dataset e alterei a função def main para que o df_clean fosse efetivamente utilizado no preprocessing.
+
+Depois destas alterações, testei os modelos Logistic Regression e Decision Tree, usei test_size = 0.2 e random_state = 42 (tal como pre-definido). A Logistic Regression apresentou 0.678 de accuracy no treino e 0.655 no teste, com um gap de 0.023. O F1-score da classe 1 foi 0.57 e o macro F1-score 0.64. A Decision Tree apresentou 0.799 de accuracy no treino e 0.606 no teste, com um gap de 0.193. O F1-score da classe 1 foi 0.50 e o macro F1-score 0.59. A diferença maior entre treino e teste na Decision Tree sugere overfiting.
+
+Na Logistic Regression, obtive relativamente ao FPR 0.30 para African-American, 0.16 para Caucasian, 0.19 para Hispanic e 0.10 para Other. Na Decision Tree, os valores foram 0.33, 0.19, 0.16 e 0.18, respetivamente. 
+A comparação dos modelos permitiu analisar o seu desempenho através da accuracy e dos F1-scores, enquanto a análise da FPR por raça permitiu avaliar diferenças entre grupos.

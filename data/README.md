@@ -77,3 +77,21 @@ Depois destas alterações, testei os modelos Logistic Regression e Decision Tre
 
 Na Logistic Regression, obtive relativamente ao FPR 0.30 para African-American, 0.16 para Caucasian, 0.19 para Hispanic e 0.10 para Other. Na Decision Tree, os valores foram 0.33, 0.19, 0.16 e 0.18, respetivamente. 
 A comparação dos modelos permitiu analisar o seu desempenho através da accuracy e dos F1-scores, enquanto a análise da FPR por raça permitiu avaliar diferenças entre grupos.
+
+# progresso semana 3
+
+Na Semana 3, alterei o preprocessing.py adicionando as funções split_features_target() e build_preprocessor(). Também adicionei a função split_dev_test(), utilizada posteriormente para separar o development set do locked test set.
+No model.py, foi adicionada a função build_model(), permitindo selecionar e configurar diferentes modelos (random forest, dummy, descison tree e logistic regression) através do config.yaml. Passei também a definir as configurações de preprocessing no config.yaml, incluindo o encoder, scaler, random_state, features numéricas e categóricas e estratégias de imputação.
+
+Implementei já a parte do cross-validation relativa à Semana 4.
+No evaluate.py, adicionei as funções cross_validate_pipeline(), cv_report(), oof_classification_report() e fairness_report(). No config.yaml, acrescentei as configurações da cross-validation e do locked test set, substituindo o antigo split direto de 80/20 entre treino e teste. O results.py foi também atualizado para guardar as configurações e resultados da cross-validation. Por fim, alterei o main.py para integrar este novo fluxo, utilizando o development set para a cross-validation e mantendo o test set separado para a avaliação final.
+
+Na Semana 3, os modelos foram avaliados através de uma única divisão de 80/20 entre treino e teste. A Logistic Regression obteve a maior accuracy no conjunto de teste, com 0.673, seguida pelo Random Forest com 0.648 e pela Decision Tree com 0.625, enquanto o modelo Dummy obteve 0.546. A Logistic Regression também apresentou um train–test gap muito pequeno (+0.003), em comparação com +0.148 para o Random Forest e +0.171 para a Decision Tree o que sugere um maior risco de overfitting.
+
+Na Semana 4, a avaliação foi melhorada através da criação do test set (1443 obs), que não foi utilizado durante a seleção dos modelos, e da aplicação de 5-fold cross-validation no conjunto de treino (5771 obs). 
+Na cross-validation, a Logistic Regression obteve uma mean validation accuracy de 0.672, com std de 0.013 e um train–validation gap de +0.003. O Random Forest obteve uma mean validation accuracy de 0.650, com std de 0.018 e gap de +0.083, enquanto a Decision Tree obteve 0.609, std de 0.017 e gap de +0.085. O Dummy apresentou 0.549, com std de 0.000 e gap 0.
+
+A mean validation accuracy da cross-validation é mais confiavel do que a accuracy de uma única divisão (Semana 3), pq a cross-validation avalia o modelo em cinco diferentes folds dando uma ideia mais consistente de como o modelo pode generalizar para novos dados e alem disso o TargetEncoder é ajustado apenas com os dados de treino de cada fold, evitando target leakage para o conjunto de validação.
+A conclusão da Semana 3 mantém-se com o cross-validation, a Logistic Regression passou de 0.673 de accuracy no teste da Semana 3 para 0.672 std 0.013 na Semana 4, enquanto o Random Forest passou de 0.648 para 0.650 std 0.018 e a Decision Tree de 0.625 para 0.609 std 0.017. 
+Além disso, o train–validation gap da Logistic Regression manteve-se muito pequeno (+0.003), exatamente igual ao train–test gap observado na Semana 3 (+0.003), mostrando um desempenho bastante estável. 
+ 

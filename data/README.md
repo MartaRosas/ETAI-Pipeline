@@ -94,4 +94,55 @@ Na cross-validation, a Logistic Regression obteve uma mean validation accuracy d
 A mean validation accuracy da cross-validation é mais confiavel do que a accuracy de uma única divisão (Semana 3), pq a cross-validation avalia o modelo em cinco diferentes folds dando uma ideia mais consistente de como o modelo pode generalizar para novos dados e alem disso o TargetEncoder é ajustado apenas com os dados de treino de cada fold, evitando target leakage para o conjunto de validação.
 A conclusão da Semana 3 mantém-se com o cross-validation, a Logistic Regression passou de 0.673 de accuracy no teste da Semana 3 para 0.672 std 0.013 na Semana 4, enquanto o Random Forest passou de 0.648 para 0.650 std 0.018 e a Decision Tree de 0.625 para 0.609 std 0.017. 
 Além disso, o train–validation gap da Logistic Regression manteve-se muito pequeno (+0.003), exatamente igual ao train–test gap observado na Semana 3 (+0.003), mostrando um desempenho bastante estável. 
+
+# progresso semana 5
+
+(o hyperparameter_tuning ja estava implementado pois fiz na semana 4, em que nao houve avaliação semanal)
+
+Esta semana alterei o models.py adicionando o addaboost(), o oblique_random_forest() e o dicionário: _MODELS. No config.yaml adicionei a secção 5.1 relativa ao tuning.search_spaces. 
  
+Resultados:
+
+Modelo	           Accuracy média	Desvio-padrão
+Random Forest	         0,681	       0,015
+Decision Tree	         0,672	       0,017
+Oblique Random Forest	 0,679	       0,013
+AdaBoost	             0,682	       0,017
+Logistic Regression	     0,671	       0,015
+
+O AdaBoost tem a maior accuracy média nesta baseline (0,682), mas a diferença para Random Forest (0,681) é de apenas 0,001, ou seja, não é suficiente, por si só, para concluir que um modelo é realmente superior.
+A regressão logística apresenta 0,671, cerca de 1,1 pontos percentuais abaixo do AdaBoost. Continua a ser uma baseline importante para avaliar se as novas features melhoram um modelo linear.
+
+Modelo	               Gap inicial	Gap após tuning
+Random Forest	          0,082	         0,009
+Decision Tree	          0,085	         0,013
+Oblique Random Forest	  0,114	         0,013
+AdaBoost	              0,006	         0,004
+Logistic Regression	      0,003	         0,005
+
+A Random Forest, a Decision Tree e a Oblique Random Forest mostram gaps iniciais relativamente elevados. Com o tunning reduz bastante esses gaps. Isto sugere que limitar a complexidade dos modelos ajuda a controlar o overfitting.
+A regressão logística e o AdaBoost já apresentam gaps pequenos antes do tuning mas isso não significa que sejam necessariamente melhores.
+
+Challenge:
+adicionei add_engineered_features() ao preprocessing.py onde criei as variaveis "priors_per_adult_year","juvenile_offense_total" e "age_priors_interaction" e no main, chamei o add_engineered_features.
+
+No config.yaml adicionei à lista as 3 features numericas que criei.
+
+Resultados dos 3 modelos:
+
+Modelo	              Sem as features  Com as features	  Diferença 
+Random Forest	           0,681	     0,674	       −0,007
+AdaBoost	               0,682	     0,677	       −0,005
+Logistic Regression	       0,671	     0,671	        0,000
+
+A Random Forest e o AdaBoost apresentam pequenas diminuições, enquanto a regressão logística mantém a mesma média, após arredondamento.
+As diferenças observadas são inferiores aos desvios-padrão entre folds dos respetivos modelos com features (0,011, 0,009 e 0,010).
+
+Para a ultima parte do challenge testei o addboostclassifier adicionei ao model.py o adaboost_logistic e inclui-a no dicionario _MODELS, alterei o config.yaml para testar o modelo e o incluir na seccao de tunning.
+
+Modelo	                           Accuracy média	Desvio-padrão
+Logistic Regression	                   0,671	        0,015
+AdaBoost com Logistic Regression	   0,673	        0,016
+
+A accuracy aumentou de 0,671 para 0,673, correspondendo a uma melhoria de apenas 0,002 esta diferença é muito pequena quando comparada com a variabilidade observada entre os folds.
+Assim, os resultados não demonstram uma melhoria substancial do desempenho através da combinação de várias regressões logísticas com AdaBoost. O modelo final pode deixar de ser linear mesmo quando combina várias regressões logísticas, porque utiliza uma votação ponderada das suas previsões.

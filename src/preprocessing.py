@@ -143,6 +143,7 @@ def add_missingness_indicators(df: pd.DataFrame, mnar_indicator_sources: list) -
     return out
 
 
+
 def split_features_target(df: pd.DataFrame, data_config: dict, mnar_indicator_sources: list):
     """
     Returns (X, y, extras). `y` is `None` and `extras` has no target column when called
@@ -229,3 +230,29 @@ def split_dev_test(X, y, extras, test_size: float, random_state: int):
         X, y, extras, test_size=test_size, random_state=random_state, stratify=y
     )
     return X_dev, X_test, y_dev, y_test, extras_dev, extras_test
+
+
+
+def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add features computed from existing columns using fixed formulas."""
+    out = df.copy()
+
+    # Example from Section 6 of the notebook
+    out["priors_per_adult_year"] = (
+        out["priors_count"] / (out["age"] - 17).clip(lower=1)
+    )
+
+    # feature 1: total juvenile offenses
+    out["juvenile_offense_total"] = (
+        out["juv_fel_count"]
+        + out["juv_misd_count"]
+        + out["juv_other_count"]
+    )
+
+    # feature 2: interaction between age and prior offenses
+    out["age_priors_interaction"] = (
+        out["age"] * out["priors_count"]
+    )
+
+    return out
+

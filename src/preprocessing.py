@@ -233,7 +233,7 @@ def split_dev_test(X, y, extras, test_size: float, random_state: int):
 
 
 
-def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
+#def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
     """Add features computed from existing columns using fixed formulas."""
     out = df.copy()
 

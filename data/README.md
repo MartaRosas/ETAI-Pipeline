@@ -146,3 +146,28 @@ AdaBoost com Logistic Regression	   0,673	        0,016
 
 A accuracy aumentou de 0,671 para 0,673, correspondendo a uma melhoria de apenas 0,002 esta diferença é muito pequena quando comparada com a variabilidade observada entre os folds.
 Assim, os resultados não demonstram uma melhoria substancial do desempenho através da combinação de várias regressões logísticas com AdaBoost. O modelo final pode deixar de ser linear mesmo quando combina várias regressões logísticas, porque utiliza uma votação ponderada das suas previsões.
+
+# semana 7 boosting and metrics
+
+Esta semana, relativamente ao 06_boosting, importei no model.py os três novos modelos (GradientBoosting, HistGradientBoosting e GaussianNB) e adicionei-os ao dicionário _MODELS.
+No config.yaml, atualizei o model.type e acrescentei ao tuning.search_spaces os novos modelos.
+
+Relativamente ao 07_metrics, fiz as alterações pedidas em evaluate.py, tuning.py, results.py e main.py, o que permitiu avaliar e comparar oito modelos: Naive Bayes, Logistic Regression, Decision Tree, Random Forest, Oblique Random Forest, AdaBoost, Gradient Boosting e HistGradientBoosting.
+
+Modelo	                ROC-AUC	     Std	Precision	Recall	 F1	   ROC-AUC(sem tuning)
+Oblique Random Forest	 0.728	    0.012	  0.673	    0.570	0.617	0.685
+Gradient Boosting	     0.727	    0.014	  0.686	    0.541	0.605	0.727
+AdaBoost	             0.727	    0.014	  0.674	    0.573	0.619	0.723
+Random Forest	         0.727	    0.016	  0.682	    0.551	0.609	0.684
+HistGradientBoosting	 0.726	    0.014	  0.685	    0.531	0.597	0.717
+Logistic Regression	     0.718	    0.014	  0.711	    0.451	0.550	0.718
+Decision Tree	         0.712	    0.014	  0.661	    0.548	0.599	0.610
+Naive Bayes	             0.701	    0.011	  0.713	    0.271	0.392	0.685
+
+Foram comparados os resultados de ROC-AUC antes e depois do tuning, usando um modelo dummy como referência.
+
+O modelo com melhor resultado após o tuning foi o Oblique Random Forest, com um ROC-AUC de 0,728. Gradient Boosting, AdaBoost e Random Forest apresentaram resultados muito próximos, de aproximadamente 0,727. Todos os modelos superaram o valor de referência do modelo dummy (0,500).
+
+o AdaBoost apresenta o maior F1 (0.619), enquanto o Oblique Random Forest tem o ROC-AUC mais elevado (0.728). O Naive Bayes apresenta um recall bastante inferior (0.271), o que significa que identifica uma proporção menor dos casos positivos
+
+Assim, o Oblique Random Forest é o modelo escolhido. No entanto os resultados são muito próximos dos obtidos pelo AdaBoost, Gradient Boosting e Random Forest, pelo que não existe uma vantagem expressiva de um único modelo. 

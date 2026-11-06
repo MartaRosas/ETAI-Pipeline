@@ -171,3 +171,38 @@ O modelo com melhor resultado após o tuning foi o Oblique Random Forest, com um
 o AdaBoost apresenta o maior F1 (0.619), enquanto o Oblique Random Forest tem o ROC-AUC mais elevado (0.728). O Naive Bayes apresenta um recall bastante inferior (0.271), o que significa que identifica uma proporção menor dos casos positivos
 
 Assim, o Oblique Random Forest é o modelo escolhido. No entanto os resultados são muito próximos dos obtidos pelo AdaBoost, Gradient Boosting e Random Forest, pelo que não existe uma vantagem expressiva de um único modelo. 
+
+# semana 8 feature_selection
+
+Esta semana implementei a funcionalidade de Feature Selection, através do VoteSelector, e adicionei o modelo XGBoost ao pipeline. Depois, executei o modelo XGBoost com o feature_selection True e False, com tuning em ambas as configurações.
+
+O scoreboard atualizado, incluindo os resultados das duas configurações do XGBoost:
+
+Modelo	                ROC-AUC	     Std	Precision	Recall	 F1	   ROC-AUC(sem tuning)
+Oblique Random Forest	 0.728	    0.012	  0.673	    0.570	0.617	0.685
+Gradient Boosting	     0.727	    0.014	  0.686	    0.541	0.605	0.727
+AdaBoost	             0.727	    0.014	  0.674	    0.573	0.619	0.723
+Random Forest	         0.727	    0.016	  0.682	    0.551	0.609	0.684
+HistGradientBoosting	 0.726	    0.014	  0.685	    0.531	0.597	0.717
+XGBoost (sem seleção)	 0.727	    0.015	  0.667	    0.580	0.620	0.724
+XGBoost (com seleção)	 0.725	    0.013	  0.675	    0.558	0.611	0.721
+Logistic Regression	     0.718	    0.014	  0.711	    0.451	0.550	0.718
+Decision Tree	         0.712	    0.014	  0.661	    0.548	0.599	0.610
+Naive Bayes	             0.701	    0.011	  0.713	    0.271	0.392	0.685
+
+
+Para comparar as duas configurações, analisei também os resultados de Nested Cross-Validation em cada um dos cinco folds:
+
+Fold	Com seleção	   Sem seleção
+1	       0.724	     0.731
+2	       0.703	     0.702
+3	       0.730	     0.736
+4	       0.733	     0.735
+5	       0.734	     0.731
+
+
+O modelo com Feature Selection manteve apenas 2 das 10 features originais: numeric__age e numeric__priors_count. Apesar desta redução significativa, obteve um ROC-AUC médio de 0.725, muito próximo dos 0.727 obtidos pelo modelo sem seleção de features. 
+
+Usei o corrected_paired_test(), utilizando os resultados dos mesmos cinco folds. O teste apresentou uma diferença média de -0.0024, um valor de t de -0.793 e um p-value de 0.4723. Como o p-value é superior a 0.05, não existe evidência estatística suficiente para concluir que os dois modelos apresentam desempenhos diferentes.
+
+Os resultados mostram que a aplicação de Feature Selection reduziu o número de features de 10 para apenas 2, mantendo um desempenho muito semelhante ao modelo original. Embora o XGBoost sem seleção tenha obtido um ROC-AUC ligeiramente superior (0.727 para 0.725), a diferença observada é pequena e não estatisticamente significativa. Assim, manter a Feature Selection pode ser uma boa opção, uma vez que permite obter um modelo mais simples e interpretável, sem uma perda relevante de desempenho preditivo.

@@ -4,9 +4,10 @@
 #W9
 data:
   path: "data/adult_train.csv"
+  new_path: "data/adult_new.csv"      # W9: pessoas a prever no fim (sem target)
   target: "income_over_50k"
-  sensitive_attr: "sex"            # escolhe sex OU race e justifica no README
-  drop_columns: ["id", "fnlwgt", "education"]
+  sensitive_attr: "sex"              # escolhi sex e não race 
+  drop_columns: ["id", "fnlwgt", "education"]  
 
 # Week 4: the FINAL TEST SET. Carved out once, stratified, and locked: never used to fit,
 # tune, compare or choose anything. Used only for the final assessment.

@@ -24,6 +24,9 @@ from src.evaluate import (build_scorers, cross_validate_pipeline, cv_report, oof
 from src.tuning import tune_pipeline, nested_cross_validate, tuning_report
 from src.results import save_run, save_scores
 
+#W9
+import os
+import pandas as pd
 
 
 def load_config(path: str = "config.yaml") -> dict:
@@ -131,6 +134,23 @@ def main():
         kept = pipeline.named_steps["select"].get_feature_names_out(all_features)
         refit += f"\nFeatures kept: {len(kept)} of {len(all_features)}: {', '.join(kept)}"
     report += "\n" + refit + "\n"
+
+        # Predict the new people (only if the config has data.new_path; COMPAS has none)
+    new_path = config["data"].get("new_path")
+    if new_path:
+        new_raw = load_data(new_path)
+        ids = new_raw[config["diagnostics"]["id_column"]]
+        new_clean = clean_dataset(new_raw, config["diagnostics"])      # no drop_duplicate_rows
+        X_new, _, _ = split_features_target(new_clean, config["data"], mnar_sources)
+        proba_new = pipeline.predict_proba(X_new)[:, 1]
+        predictions = pd.DataFrame({"id": ids.values, "probability": proba_new,
+                                    "prediction": (proba_new >= 0.5).astype(int)})
+        assert len(predictions) == len(new_raw), "rows out != rows in"
+        results_dir = config.get("output", {}).get("results_dir", "results")
+        os.makedirs(results_dir, exist_ok=True)
+        pred_path = os.path.join(results_dir, "predictions.csv")
+        predictions.to_csv(pred_path, index=False)
+        print(f"\nPredictions for {len(predictions)} new people saved to {pred_path}")
 
     row = {"run": run, "data": config["data"]["path"], "model": model_type, "tuned": tuning_enabled,
            "encoder": config["preprocessing"]["encoder"], "scaler": config["preprocessing"]["scaler"],

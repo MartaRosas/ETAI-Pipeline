@@ -7,7 +7,6 @@ data:
   sensitive_attr: "race"          # excluded from model features, used only to audit fairness
   drop_columns: ["id", "decile_score", "score_text"]  # identifiers / COMPAS's own score, not our model's inputs
 
-
 # Week 4: the FINAL TEST SET. Carved out once, stratified, and locked: never used to fit,
 # tune, compare or choose anything. Used only for the final assessment.
 # Do not change these two values after week 4 -- a new seed would silently give you a
@@ -34,7 +33,7 @@ diagnostics:
   numeric_text_columns: ["priors_count", "prior_offenses"]
   placeholder_tokens: ["-", "?", "n/a", "N/A", "na", "NA", ""]
   validity_rules:
-    age: {min: 18, max: 100}
+    age: {min: 18, max: 100} 
     decile_score: {min: 1, max: 10}
     juv_fel_count: {min: 0}
     priors_count: {min: 0, max: 60}

@@ -206,3 +206,74 @@ O modelo com Feature Selection manteve apenas 2 das 10 features originais: numer
 Usei o corrected_paired_test(), utilizando os resultados dos mesmos cinco folds. O teste apresentou uma diferença média de -0.0024, um valor de t de -0.793 e um p-value de 0.4723. Como o p-value é superior a 0.05, não existe evidência estatística suficiente para concluir que os dois modelos apresentam desempenhos diferentes.
 
 Os resultados mostram que a aplicação de Feature Selection reduziu o número de features de 10 para apenas 2, mantendo um desempenho muito semelhante ao modelo original. Embora o XGBoost sem seleção tenha obtido um ROC-AUC ligeiramente superior (0.727 para 0.725), a diferença observada é pequena e não estatisticamente significativa. Assim, manter a Feature Selection pode ser uma boa opção, uma vez que permite obter um modelo mais simples e interpretável, sem uma perda relevante de desempenho preditivo.
+
+# semana 9 beyond_compass
+
+Escolhi a option A: prever se uma pessoa ganha mais de 50 mil USD por ano (`income_over_50k`) com o dataset Adult (`data/adult_train.csv`, 6000 linhas) e prever as 2000 pessoas novas de `data/adult_new.csv`.
+
+Cada problema tem a sua pasta de resultados: `results` e `results_adult`, para os scoreboards não se misturarem. As previsões das pessoas novas ficam em `results_adult/predictions.csv` (colunas `id`, `probability`, `prediction`; 2000 linhas).
+
+config_adult.yaml alterações:
+
+- data: caminho, target `income_over_50k`, sensitive attribute `sex`, `drop_columns: [id, fnlwgt, education]` e `new_path` (o ficheiro a prever).
+- diagnostics: `?` como placeholder; regras de validade próprias do Adult (`age` 17–90, `hours_per_week` 1–99, `capital_gain` e `capital_loss` ≥ 0); `workclass`, `occupation` e `native_country` listadas em `canonical_categories` (mapa vazio) para o `?` virar `NaN`; `redundant_columns: [education, fnlwgt]`.
+- preprocessing: target encoder, RobustScaler, todas as colunas listadas à mão (inclui `v01` a `v25`) e `mnar_indicator_sources: [workclass]`.
+- feature_selection.enabled: `true` (para ver que colunas, incluindo as `v`, ficam).
+- output para ficar `results_adult`.
+
+Decisões sobre sensitive attributes e missing values:
+
+O sensitive attribute escolhido é `sex`. `race` não está em `numeric_features` nem em `categorical_features`, por isso não entra no modelo.
+
+Usei apenas uma missing indicator (`workclass_was_missing`), porque os `?` de `workclass` e `occupation` são as mesmas pessoas.
+Não tratei o `99999` de `capital_gain` como erro.
+
+main.py alterações:
+
+Lê o config do argumento da linha de comandos (por defeito `config.yaml`) e, se o config tiver `data.new_path`, prevê essas pessoas depois do refit (mesma limpeza, sem `drop_duplicate_rows`, e confirma que o número de linhas à saída é igual ao número de linhas à entrada).
+
+Corri `main.py config_adult.yaml` e houve um crash no `fairness_report`:
+
+- `src/evaluate.py`: `fairness_report` só compara com o score do COMPAS se existir a coluna `score_text`.
+- `fairness_report` deixa de assumir a existência da coluna `score_text`.
+
+Verificações:
+
+- Limpeza (`check_clean.py`, que chama `clean_dataset()` com o config do Adult): `workclass` 379, `occupation` 381 e `native_country` 86 valores em falta, e nenhum `?` a sobrar, como esperado.
+- COMPAS: com o `config.yaml` sem alterações, as alterações desta semana dão exatamente os mesmos resultados da Semana 8 (ROC-AUC 0.727 ± 0.015 com tuning, mesmos hiperparâmetros escolhidos e mesmas métricas por fold).
+- Previsões de adult_new.csv 2000 linhas à saída, 2000 à entrada, id únicos
+
+| what broke | why it broke | how i fixed it |
+|---|---|---|
+| `KeyError: 'score_text'` no `fairness_report` | assumia que o dataset tinha a coluna `score_text` do COMPAS | só compara com o score do COMPAS se a coluna existir |
+| Cabeçalho do FPR dizia "did NOT reoffend" | texto escrito a pensar na reincidência | texto geral: "true label is 0, but predicted 1" |
+| `?` não era tratado como missing | `_canonicalize_categories` só mexe nas colunas listadas em `canonical_categories` | listei `workclass`, `occupation` e `native_country` no config (mapa vazio) |
+| `age: {min: 18}` apagaria 74 pessoas | regra de validade do COMPAS | regras próprias do Adult (`age` 17–90) |
+
+| Run      | Modelo                              | Tuning                   | Feature selection                     | ROC-AUC           | Accuracy    | F1         |
+|----------|-------------------------------------|--------------------------|---------------------------------------|-------------------|-------------|------------|
+| **A**    | XGBoost (hiperparâmetros do config) | não                      | `min_votes 2`                         | **0.913 ± 0.016** | **0.864**   | **0.686**  |
+| B        | XGBoost                             | sim, 5 trials, nested CV | `min_votes 1` (escolhido pelo Optuna) | 0.905 ± 0.014     | 0.857       | 0.648      |
+| **Alvo** |                                     |                          |                                       | **≥ 0.90**        | **≥ 0.855** | **≥ 0.66** |
+
+A Run A atinge os três objetivos definidos na mesma execução, superando os valores mínimos de ROC-AUC, accuracy e F1.
+
+A Run B também cumpre os objetivos de ROC-AUC e accuracy, mas fica abaixo do valor mínimo estabelecido para o F1. Ainda assim, a nested CV apresenta uma estimativa de optimismo de apenas -0.001, o que indica uma diferença praticamente nula entre a performance estimada e a observada. Assim, o ROC-AUC de 0.905 constitui uma estimativa fiável do desempenho do modelo.
+
+Features mantidas (8 de 36)
+
+| Tipo | Mantidas | Não mantidas |
+|---|---|---|
+| Numéricas | `age`, `education_num`, `capital_gain`, `capital_loss`, `hours_per_week` | `v01` a `v18` |
+| Categóricas | `marital_status`, `occupation`, `relationship` | `workclass`, `native_country`, `v19` a `v25` |
+| Missing indicator | n/a | `workclass_was_missing` |
+
+| Grupo | FPR | n (verdadeiros negativos) |
+|---|---|---|
+| Mulheres | 0.03 | 1390 |
+| Homens | 0.08 | 2261 |
+
+O `sex` não é uma feature do modelo, mas o modelo prevê `>50K` mais vezes para homens.
+
+`results_adult/predictions.csv` tem as 2000 pessoas de `adult_new.csv`, previstas pelo modelo da Run A (refit em todo o conjunto de desenvolvimento).
+A suposição mais difícil de encontrar foi a do ?: o _canonicalize_categories só trata o placeholder nas colunas listadas no config, e uma coluna esquecida ficaria com a categoria ? sem qualquer erro, por isso só a verificação dos value_counts a apanha. O KeyError do fairness_report foi o único crash em execução, e a correção mantém o COMPAS idêntico. O que levou aos alvos foi sobretudo a limpeza e o config: o XGBoost com os hiperparâmetros por defeito já os atinge. O tuning com apenas 5 trials não melhorou (0.905 contra 0.913) e deixou o F1 abaixo do alvo, o que sugere que seria preciso mais trials para que compensasse.

@@ -8,6 +8,7 @@ model) on the development set (several metrics, and the no-model floor on the sa
 -> out-of-fold reports -> refit on all development rows -> scoreboard + full report
 """
 import shutil
+import sys  #W9
 import tempfile
 from datetime import datetime
 
@@ -24,13 +25,17 @@ from src.tuning import tune_pipeline, nested_cross_validate, tuning_report
 from src.results import save_run, save_scores
 
 
+
 def load_config(path: str = "config.yaml") -> dict:
     with open(path, "r") as f:
         return yaml.safe_load(f)
+ 
 
 
 def main():
-    config = load_config()
+    #config = load_config()
+    config_path = sys.argv[1] if len(sys.argv) > 1 else "config.yaml" #adicionei W9
+    config = load_config(config_path) #adicionei W9
     run = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_type = config["model"]["type"]
 

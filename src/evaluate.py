@@ -103,14 +103,33 @@ def fairness_report(y_true, oof_proba, extras: pd.DataFrame, sensitive_attr: str
     df[sensitive_attr] = df[sensitive_attr].astype(object).fillna("unknown")
     df["y_true"] = pd.Series(y_true).values
     df["y_pred_model"] = (oof_proba >= threshold).astype(int)
-    df["y_pred_compas"] = (df["score_text"] != "Low").astype(int)
+    #alteraçao da W9
+    #df["y_pred_compas"] = (df["score_text"] != "Low").astype(int)
+    has_compas = "score_text" in df.columns
+    if has_compas:
+        df["y_pred_compas"] = (df["score_text"] != "Low").astype(int)
+
+    comparisons = [("Our model", "y_pred_model")]
+    if has_compas:
+        comparisons.append(("COMPAS's own score", "y_pred_compas"))
+
+    #alteração w9
+
+    #lines = [
+    #    f"False positive rate by {sensitive_attr} (development set, out-of-fold)",
+    #    "(share of people who did NOT reoffend, but were predicted to)",
+    #    "",
+    #]
 
     lines = [
         f"False positive rate by {sensitive_attr} (development set, out-of-fold)",
-        "(share of people who did NOT reoffend, but were predicted to)",
+        "(share of people whose true label is 0, but were predicted 1)",
         "",
     ]
-    for label, col in [("Our model", "y_pred_model"), ("COMPAS's own score", "y_pred_compas")]:
+
+    #alteração W9
+    #for label, col in [("Our model", "y_pred_model"), ("COMPAS's own score", "y_pred_compas")]:
+    for label, col in comparisons:    
         lines.append(f"  {label}:")
         for group, g in df.groupby(sensitive_attr):
             negatives = g[g["y_true"] == 0]

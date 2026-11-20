@@ -17,7 +17,12 @@ import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.impute import SimpleImputer
+
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.experimental import enable_iterative_imputer  # noqa: F401
+from sklearn.impute import IterativeImputer, KNNImputer, SimpleImputer
+
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import (
     OneHotEncoder, OrdinalEncoder, TargetEncoder, StandardScaler, MinMaxScaler, RobustScaler,
@@ -175,6 +180,27 @@ _ENCODERS = {
     "target": lambda seed: TargetEncoder(target_type="binary", cv=StratifiedKFold(5, shuffle=True, random_state=seed)),
 }
 
+_NUMERIC_IMPUTERS = {
+    "median": lambda cfg, seed: SimpleImputer(strategy="median"),
+    "mean": lambda cfg, seed: SimpleImputer(strategy="mean"),
+    "knn": lambda cfg, seed: KNNImputer(
+        n_neighbors=cfg.get("n_neighbors", 5),
+    ),
+    "iterative": lambda cfg, seed: IterativeImputer(
+        max_iter=cfg.get("max_iter", 10),
+        random_state=seed,
+    ),
+    "random_forest": lambda cfg, seed: IterativeImputer(
+        estimator=RandomForestRegressor(
+            n_estimators=cfg.get("n_estimators", 50),
+            min_samples_leaf=5,
+            random_state=seed,
+            n_jobs=-1,
+        ),
+        max_iter=cfg.get("max_iter", 10),
+        random_state=seed,
+    ),
+}
 
 def build_preprocessor(preprocessing_config: dict) -> ColumnTransformer:
     """
@@ -196,10 +222,27 @@ def build_preprocessor(preprocessing_config: dict) -> ColumnTransformer:
     scaler = scaler_factory() if callable(scaler_factory) else scaler_factory
     encoder = _ENCODERS[encoder_name](preprocessing_config.get("random_state"))
 
+    #numeric_pipeline = Pipeline([
+    #    ("impute", SimpleImputer(strategy=imputation.get("numeric_strategy", "median"))),
+    #    ("scale", scaler),
+    #])
+
+    numeric_strategy = imputation.get("numeric_strategy", "median")
+    if numeric_strategy not in _NUMERIC_IMPUTERS:
+        raise ValueError(
+            f"Unknown numeric_strategy: {numeric_strategy}. "
+            f"Options: {list(_NUMERIC_IMPUTERS)}"
+        )
+
+    imputer = _NUMERIC_IMPUTERS[numeric_strategy](
+        imputation, preprocessing_config.get("random_state")
+    )
     numeric_pipeline = Pipeline([
-        ("impute", SimpleImputer(strategy=imputation.get("numeric_strategy", "median"))),
         ("scale", scaler),
+        ("impute", imputer),
     ])
+
+    
     categorical_pipeline = Pipeline([
         ("impute", SimpleImputer(strategy=imputation.get("categorical_strategy", "most_frequent"))),
         ("encode", encoder),

@@ -277,3 +277,28 @@ O `sex` não é uma feature do modelo, mas o modelo prevê `>50K` mais vezes par
 
 `results_adult/predictions.csv` tem as 2000 pessoas de `adult_new.csv`, previstas pelo modelo da Run A (refit em todo o conjunto de desenvolvimento).
 A suposição mais difícil de encontrar foi a do ?: o _canonicalize_categories só trata o placeholder nas colunas listadas no config, e uma coluna esquecida ficaria com a categoria ? sem qualquer erro, por isso só a verificação dos value_counts a apanha. O KeyError do fairness_report foi o único crash em execução, e a correção mantém o COMPAS idêntico. O que levou aos alvos foi sobretudo a limpeza e o config: o XGBoost com os hiperparâmetros por defeito já os atinge. O tuning com apenas 5 trials não melhorou (0.905 contra 0.913) e deixou o F1 abaixo do alvo, o que sugere que seria preciso mais trials para que compensasse.
+
+# semana 10 missing_values e 11_deployment
+
+Em `preprocessing.py`, o pipeline passou a aplicar scaling às variáveis numéricas antes da imputação. A estratégia é definida em `config.yaml` através de `preprocessing.imputation.numeric_strategy`
+
+Comparei cinco imputers com o mesmo XGBoost, os mesmos cinco stratified folds e o tuning desligado (False). O final test set ficou reservado. Usei `median` como baseline e corri `corrected_paired_test()` sobre os valores de ROC-AUC dos mesmos folds de validação.
+
+| Imputer | Run ID | Mean ROC-AUC ± SD | Δ vs. median | Corrected p-value |
+|---|---|---:|---:|---:|
+| `median` | `20261120_193112` | 0.72399 ± 0.01743 | — | — |
+| `mean` | `20261120_193152` | 0.72353 ± 0.01651 | −0.00047 | 0.743 |
+| `knn` | `20261120_193237` | 0.72519 ± 0.01532 | +0.00119 | 0.632 |
+| `iterative` | `20261120_193348` | 0.72375 ± 0.01791 | −0.00024 | 0.933 |
+| `random_forest` | `20261120_193436` | 0.72318 ± 0.01562 | −0.00081 | 0.545 |
+
+O `knn` obteve o ROC-AUC médio mais alto e superou a mediana em 4 dos 5 folds, com um ganho médio de 0.00119. Nenhuma das diferenças face à mediana foi estatisticamente significativa ao nível de 5%. Escolhi manter `median` pela simplicidade e pelo menor custo de treino.
+
+Após o treino final, `main.py` guarda o pipeline completo em `model.joblib`. O `predict.py` carrega esse pipeline e aplica as mesmas regras de limpeza a um novo CSV, sem voltar a treinar o modelo.
+
+O comando (python predict.py data/compas_new_people.csv predictions.csv) gerou 20 previsões, uma por cada linha do CSV de entrada. O ficheiro `predictions.csv` contém três colunas:
+
+`id` — identificador da linha de entrada.
+`probability` — probabilidade estimada da classe positiva.
+`prediction` — classe `0` ou `1`, calculada com um threshold de `0.5`.
+

@@ -28,6 +28,8 @@ from src.results import save_run, save_scores
 import os
 import pandas as pd
 
+import joblib
+
 
 def load_config(path: str = "config.yaml") -> dict:
     with open(path, "r") as f:
@@ -41,6 +43,10 @@ def main():
     config = load_config(config_path) #adicionei W9
     run = datetime.now().strftime("%Y%m%d_%H%M%S")
     model_type = config["model"]["type"]
+
+    imputer = config["preprocessing"].get("imputation", {}).get(
+        "numeric_strategy", "median"
+    )
 
     df_raw = load_data(config["data"]["path"])
     df_clean = clean_dataset(df_raw, config["diagnostics"])
@@ -128,6 +134,13 @@ def main():
     report += "\n" + fairness_report(y_dev, oof_proba, extras_dev, sensitive_attr=config["data"]["sensitive_attr"])
 
     pipeline.fit(X_dev, y_dev)
+
+    model_path = config.get("output", {}).get("model_path", "models/model.joblib")
+    os.makedirs(os.path.dirname(model_path) or ".", exist_ok=True)
+    pipeline.set_params(memory=None)
+    joblib.dump(pipeline, model_path)
+    print(f"Saved fitted pipeline to {model_path}")
+
     refit = f"Final model: {model_type} refit on all {len(X_dev)} development rows."
     if selection_enabled:
         all_features = pipeline.named_steps["prep"].get_feature_names_out()
@@ -152,7 +165,7 @@ def main():
         predictions.to_csv(pred_path, index=False)
         print(f"\nPredictions for {len(predictions)} new people saved to {pred_path}")
 
-    row = {"run": run, "data": config["data"]["path"], "model": model_type, "tuned": tuning_enabled,
+    row = {"run": run, "data": config["data"]["path"], "model": model_type, "tuned": tuning_enabled, "imputer": imputer,
            "encoder": config["preprocessing"]["encoder"], "scaler": config["preprocessing"]["scaler"],
            "feature_selection": (f"min_votes {pipeline.named_steps['select'].min_votes}" if selection_enabled else "off"),
            "params": str(config["model"].get("params")), "tuned_params": str(study.best_params) if tuning_enabled else "",
@@ -162,7 +175,7 @@ def main():
     runs = save_scores(config.get("output", {}).get("scoreboard", "results/runs.csv"), row)
     same = runs[(runs["data"] == row["data"]) & (runs["metric"] == selection_metric)]
     board = (same.sort_values("mean", ascending=False)
-             [["run", "model", "tuned", "feature_selection", "mean", "std", "untuned", "floor"]]
+             [["run", "model", "tuned", "imputer", "feature_selection", "mean", "std", "untuned", "floor"]]
              .rename(columns={"mean": selection_metric})
              .to_string(index=False, float_format=lambda v: f"{v:.3f}"))
     print(f"\nScoreboard (runs on the same data and metric; best first)\n{board}")

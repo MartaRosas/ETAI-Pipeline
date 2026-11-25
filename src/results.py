@@ -61,6 +61,8 @@ def save_run(results_dir: str, run: str, config: dict, report_text: str) -> str:
     imputer = config["preprocessing"].get("imputation", {}).get(
         "numeric_strategy", "median"
     )
+
+    anomaly_method = (config.get("anomaly") or {}).get("method", "none")
     
     header = (
         f"Run: {run}\n"
@@ -76,6 +78,7 @@ def save_run(results_dir: str, run: str, config: dict, report_text: str) -> str:
         f"Locked test set: size={config['test_set']['size']}  "
         f"random_state={config['test_set']['random_state']}  (not evaluated)\n"
         + "=" * 60 + "\n\n"
+        f"Anomaly score: {anomaly_method}\n"
     )
 
     with open(path, "w") as f:

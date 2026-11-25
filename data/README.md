@@ -302,3 +302,32 @@ O comando (python predict.py data/compas_new_people.csv predictions.csv) gerou 2
 `probability` — probabilidade estimada da classe positiva.
 `prediction` — classe `0` ou `1`, calculada com um threshold de `0.5`.
 
+# semana 11 outliers
+
+Esta semana dicionei o `AnomalyScore` a `src/preprocessing.py`. Em `src/model.py`, coloquei este passo depois do preprocessing e antes da feature selection. Em cada fold, o detetor é ajustado apenas com os dados de treino e acrescenta o `anomaly_score` como feature.
+
+A secção `anomaly` do `config.yaml` permite escolher entre `none`, `isolation_forest` e `lof`. O `main.py` regista o método na coluna `anomaly` do `runs.csv` e no scoreboard. O `src/results.py` inclui o método na primeira linha do relatório de cada run.
+
+Inicialmente, esperava que as pessoas no top 5% por `anomaly_score` tivessem uma taxa de reincidência superior à dos restantes 95%, porque algumas combinações de idade e antecedentes poderiam estar associadas a maior reincidência. Esperava também que ao incluir o `anomaly_score` melhorasse o ROC-AUC do XGBoost, pois o score resume esses padrões numa única feature que o modelo poderia aproveitar.
+
+Comparei a taxa de reincidência das 289 pessoas (5%) com maior `anomaly_score` com a das 5 482 (95%) restantes:
+
+| Anomaly method | Top 5% | Remaining 95% | Difference |
+|---|---:|---:|---:|
+| Isolation Forest | 58.48% (169/289) | 44.36% (2 432/5 482) | +14.11 pp |
+| LOF | 51.56% (149/289) | 44.73% (2 452/5 482) | +6.83 pp |
+
+O top 5% teve maior reincidência observada com ambos. A diferença foi maior com Isolation Forest.
+
+Corri as três configurações com o mesmo modelo (XGBoost), median imputation, os mesmos cinco stratified folds e tuning desligado (false). Usei `corrected_paired_test()` para comparar o ROC-AUC de cada detetor com o baseline (`none`), fold a fold.
+
+| Anomaly method | Run ID | Mean ROC-AUC ± SD | Δ vs. baseline | Folds won | Corrected p-value |
+|---|---|---:|---:|---:|---:|
+| `none` | `20261125_114703` | 0.72399 ± 0.01743 | — | — | — |
+| `isolation_forest` | `20261125_114811` | 0.72040 ± 0.01528 | −0.00360 | 1/5 | 0.294 |
+| `lof` | `20261125_114905` | 0.71860 ± 0.01841 | −0.00539 | 0/5 | 0.022 |
+
+O none teve o melhor ROC-AUC médio. A diferença do Isolation Forest foi inconclusiva, enquanto o LOF baixou o ROC-AUC nos cinco folds, com p = 0.022 no teste individual. A maior reincidência observada no top 5% não se traduziu num ganho de ROC-AUC quando acrescentei o score ao XGBoost. Uma possível explicação é que o XGBoost já tinha acesso às variáveis usadas para calcular o `anomaly_score`, pelo que o score pode ter acrescentado pouca informação útil. Com base nos resultados, escolhi manter `anomaly.method: "none"`.
+
+Para alem disso testei o pipeline com LOF ativo e verifiquei que o `predictions.csv` manteve as 20 linhas de dados, com as colunas `id`, `probability` e `prediction` ao correr novamnete `python predict.py data/compas_new_people.csv predictions.csv`
+
